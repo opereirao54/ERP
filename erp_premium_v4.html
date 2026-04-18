@@ -501,6 +501,31 @@
                 <div class="dashboard-card expense"><div class="card-label">🔴 Atrasados</div><div class="card-value" id="dashPedAtrasados" style="color:var(--danger);">0</div></div>
                 <div class="dashboard-card warning"><div class="card-label">Ticket Médio da Fila</div><div class="card-value" id="dashPedTicket">R$ 0</div></div>
             </div>
+            
+            <!-- NOVO: Métricas por Cliente -->
+            <div class="form-card" style="background:var(--card-glass);padding:20px;margin-bottom:20px;">
+                <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i data-lucide="users" style="width:18px;color:var(--primary);"></i> Métricas por Cliente</h3>
+                <div class="dashboard-grid" style="margin-bottom:0;">
+                    <div class="dashboard-card success" style="border-top-color:var(--success);">
+                        <div class="card-label">Ticket Médio Geral (Clientes)</div>
+                        <div class="card-value" id="dashClienteTicketMedio">R$ 0</div>
+                        <div class="card-footer"><span class="card-subtitle">Média por cliente</span></div>
+                    </div>
+                    <div class="dashboard-card info" style="border-top-color:var(--info);">
+                        <div class="card-label">Pedidos por Cliente</div>
+                        <div class="card-value" id="dashClientePedidosMedio">0</div>
+                        <div class="card-footer"><span class="card-subtitle">Média de pedidos/cliente</span></div>
+                    </div>
+                    <div class="dashboard-card revenue" style="border-top-color:var(--primary);">
+                        <div class="card-label">Recorrência Média</div>
+                        <div class="card-value" id="dashClienteRecorrencia">-</div>
+                        <div class="card-footer"><span class="card-subtitle">Dias entre pedidos</span></div>
+                    </div>
+                </div>
+                <div style="margin-top:16px;">
+                    <button class="btn btn-small btn-ghost" onclick="mostrarRankingClientes()"><i data-lucide="trophy" style="width:14px;"></i> Ver Ranking de Clientes</button>
+                </div>
+            </div>
 
             <div class="form-card" style="background:var(--card-glass);padding:14px;">
                 <div class="filter-grid">
@@ -1730,7 +1755,7 @@ window.adicionarPedido=function(){
     else{db.pedidos.push({id:Date.now()+Math.floor(Math.random()*9999),status,...d});toast('success','Pedido cadastrado!',cliente+' · '+itensPedidoAtual.length+' item(s)');}
     fecharFormPedido(); itensPedidoAtual=[]; receitaAtual['ped']=[]; save();
 };
-window.mudarStatusPedido=function(id,st){const p=db.pedidos.find(x=>x.id===id);if(p){p.status=st;if(st==='Entregue'&&!p.dataReal)p.dataReal=new Date().toISOString().split('T')[0];save();}};
+window.mudarStatusPedido=function(id,st){const p=db.pedidos.find(x=>x.id===id);if(p){p.status=st;if(st==='Entregue'&&!p.dataReal)p.dataReal=new Date().toISOString().split('T')[0];save();renderPedidos();}};
 window.toggleEnd=function(aba){const t=safeStr(document.getElementById(aba==='ped'?'ped_tipoEnt':'vendaTipoEnt')?.value).trim().toLowerCase();const d=document.getElementById(aba==='ped'?'div_ped_endereco':'div_venda_endereco');if(d)d.style.display=(t.includes('retirada')||t==='')?'none':'block';};
 window.toggleParcial=function(aba){const d=document.getElementById(aba==='ped'?'divPedPago':'');if(d)d.style.display=document.getElementById('ped_statPag').value==='Parcial'?'block':'none';};
 window.abrirWhatsApp=function(tel,cliente,produto,divida){let t=safeStr(tel).replace(/\D/g,'');if(!t)return toast('warning','Sem telefone','Este pedido não tem telefone cadastrado.');if(t.length===10||t.length===11)t='55'+t;let msg=`Olá ${cliente}! `;if(parseFloat(divida)>0)msg+=`Passando para lembrar do valor pendente de ${fmt(divida)} do seu pedido de ${produto}.`;else msg+=`Seu pedido de ${produto} está com status atualizado!`;window.open(`https://wa.me/${t}?text=${encodeURIComponent(msg)}`, '_blank');};
@@ -1738,8 +1763,108 @@ window.mostrarDetalhesPedido=function(id){const p=db.pedidos.find(x=>x.id===id);
 window.mostrarDetalhesVenda=function(id){const v=db.vendas.find(x=>x.id===id);if(v){toast('info',v.cliente||'Venda',`🚚 ${v.tipoEnt||'-'} · 📝 ${v.obs||'Sem obs'}`,5000);}};
 
 // DELETE COM CONFIRMAÇÃO
-window.del=function(col,id){confirmar('Excluir registro?','Esta ação não pode ser desfeita.').then(ok=>{if(ok){db[col]=db[col].filter(i=>i.id!==id);save();toast('success','Excluído!');}});};
+window.del=function(col,id){confirmar('Excluir registro?','Esta ação não pode ser desfeita.').then(ok=>{if(ok){db[col]=db[col].filter(i=>i.id!==id);save();toast('success','Excluído!');renderPedidos();}});};
 window.delRecorrente=function(id){confirmar('Cancelar recorrência?','A despesa não será mais lançada automaticamente.','Cancelar recorrência','btn-warning').then(ok=>{if(ok){db.despesasFixas=db.despesasFixas.filter(i=>i.id!==id);save();}});};
+
+// ═══════════════════════════════════════════════════
+// MÉTRICAS POR CLIENTE
+// ═══════════════════════════════════════════════════
+window.calcularMetricasCliente = function() {
+    const pedidos = db.pedidos || [];
+    if (pedidos.length === 0) {
+        document.getElementById('dashClienteTicketMedio').innerText = 'R$ 0';
+        document.getElementById('dashClientePedidosMedio').innerText = '0';
+        document.getElementById('dashClienteRecorrencia').innerText = '-';
+        return;
+    }
+    
+    // Agrupar pedidos por cliente (usando telefone como identificador principal)
+    const clientesMap = {};
+    pedidos.forEach(p => {
+        const tel = (p.telefone || '').replace(/\D/g, '') || p.cliente.toLowerCase();
+        if (!clientesMap[tel]) {
+            clientesMap[tel] = { nome: p.cliente, telefone: tel, pedidos: [], totalGasto: 0 };
+        }
+        const valor = parseFloat(p.valorPedido) || parseFloat(p.valor) || 0;
+        clientesMap[tel].pedidos.push({ data: p.dataPedido, valor: valor });
+        clientesMap[tel].totalGasto += valor;
+    });
+    
+    const clientes = Object.values(clientesMap);
+    const numClientes = clientes.length;
+    
+    // Ticket médio por cliente (total gasto / número de clientes)
+    const totalGeral = clientes.reduce((s, c) => s + c.totalGasto, 0);
+    const ticketMedioCliente = numClientes > 0 ? totalGeral / numClientes : 0;
+    
+    // Média de pedidos por cliente
+    const totalPedidos = pedidos.length;
+    const mediaPedidosPorCliente = numClientes > 0 ? totalPedidos / numClientes : 0;
+    
+    // Dias médios de recorrência (média dos intervalos entre pedidos de cada cliente)
+    let somaIntervalos = 0;
+    let countIntervalos = 0;
+    clientes.forEach(c => {
+        if (c.pedidos.length >= 2) {
+            const datas = c.pedidos.map(p => new Date(p.data).getTime()).filter(d => d > 0).sort((a, b) => a - b);
+            for (let i = 1; i < datas.length; i++) {
+                const diffDias = (datas[i] - datas[i-1]) / (1000 * 60 * 60 * 24);
+                if (diffDias > 0 && diffDias < 365) { // Ignorar intervalos muito grandes
+                    somaIntervalos += diffDias;
+                    countIntervalos++;
+                }
+            }
+        }
+    });
+    const recorrenciaMedia = countIntervalos > 0 ? Math.round(somaIntervalos / countIntervalos) : null;
+    
+    // Atualizar UI
+    document.getElementById('dashClienteTicketMedio').innerText = fmt(ticketMedioCliente);
+    document.getElementById('dashClientePedidosMedio').innerText = mediaPedidosPorCliente.toFixed(1);
+    document.getElementById('dashClienteRecorrencia').innerText = recorrenciaMedia !== null ? `${recorrenciaMedia} dias` : '-';
+};
+
+window.mostrarRankingClientes = function() {
+    const pedidos = db.pedidos || [];
+    if (pedidos.length === 0) {
+        toast('info', 'Sem dados', 'Não há pedidos cadastrados.');
+        return;
+    }
+    
+    // Agrupar por cliente
+    const clientesMap = {};
+    pedidos.forEach(p => {
+        const tel = (p.telefone || '').replace(/\D/g, '') || p.cliente.toLowerCase();
+        if (!clientesMap[tel]) {
+            clientesMap[tel] = { nome: p.cliente, telefone: tel, qtdPedidos: 0, totalGasto: 0, ultimoPedido: null };
+        }
+        const valor = parseFloat(p.valorPedido) || parseFloat(p.valor) || 0;
+        clientesMap[tel].qtdPedidos++;
+        clientesMap[tel].totalGasto += valor;
+        if (p.dataPedido && (!clientesMap[tel].ultimoPedido || p.dataPedido > clientesMap[tel].ultimoPedido)) {
+            clientesMap[tel].ultimoPedido = p.dataPedido;
+        }
+    });
+    
+    const clientes = Object.values(clientesMap).sort((a, b) => b.totalGasto - a.totalGasto);
+    
+    let html = '<div style="max-height:400px;overflow-y:auto;">';
+    html += '<table style="width:100%;font-size:13px;">';
+    html += '<thead><tr><th style="text-align:left;">#</th><th style="text-align:left;">Cliente</th><th style="text-align:center;">Pedidos</th><th style="text-align:right;">Total Gasto</th><th style="text-align:center;">Último Pedido</th></tr></thead>';
+    html += '<tbody>';
+    clientes.forEach((c, i) => {
+        html += `<tr>
+            <td>${i+1}º</td>
+            <td><strong>${c.nome}</strong></td>
+            <td style="text-align:center;">${c.qtdPedidos}</td>
+            <td style="text-align:right;color:var(--success);font-weight:700;">${fmt(c.totalGasto)}</td>
+            <td style="text-align:center;font-size:12px;">${safeDateBR(c.ultimoPedido)||'-'}</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    
+    confirmar('🏆 Ranking de Clientes', html, 'Fechar', 'btn-primary').then(() => {});
+};
 
 // ═══════════════════════════════════════════════════
 // ITENS DO PEDIDO (MULTI-ITEM)
@@ -1986,6 +2111,10 @@ window.renderPedidos=function(){
     document.getElementById('dashPedAbertos').innerText=abertos.length;
     document.getElementById('dashPedAtrasados').innerText=nAtrasados;
     document.getElementById('dashPedTicket').innerText=abertos.length>0?fmt(abertos.reduce((s,p)=>s+(parseFloat(p.valorPedido)||parseFloat(p.valor)||0),0)/abertos.length):'R$ 0';
+    
+    // NOVO: Calcular métricas por cliente (baseado em TODOS os pedidos, não apenas filtrados)
+    calcularMetricasCliente();
+    
     const badge=document.getElementById('badge-atrasados');
     if(nAtrasados>0){badge.style.display='inline';badge.textContent=nAtrasados;}else{badge.style.display='none';}
     const cont=document.getElementById('tabelaPedidos');
