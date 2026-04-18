@@ -477,30 +477,6 @@
                 <div class="dashboard-card expense"><div class="card-label">Em Produção</div><div class="card-value" id="perfAbertos">0</div><div class="card-footer"><span class="card-subtitle"><span id="perfAtrasados" style="color:var(--danger);font-weight:700;">0 atrasados</span> · <span id="perfUrgentes" style="color:var(--warning);font-weight:700;">0 urgentes</span></span></div></div>
                 <div class="dashboard-card"><div class="card-label">Taxa de Atraso</div><div class="card-value" id="perfTaxaAtraso" style="color:var(--danger);">0%</div></div>
             </div>
-            <div class="perf-grid">
-                <div>
-                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="award" style="color:var(--warning);width:16px;"></i> Top 5 Clientes</h3><div id="perfTopClientes" style="margin-top:14px;"></div></div>
-                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="shopping-bag" style="color:var(--primary);width:16px;"></i> Produtos Mais Vendidos</h3><div id="perfTopProdutos" style="margin-top:14px;"></div></div>
-                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="truck" style="color:var(--info);width:16px;"></i> Divisão Logística</h3><div id="perfLogistica" style="margin-top:14px;"></div></div>
-                </div>
-                <div>
-                    <div class="form-card" style="border:2px solid var(--danger);background:rgba(254,242,242,0.85);"><h3 style="color:var(--danger);display:flex;align-items:center;gap:8px;font-size:15px;"><i data-lucide="alert-triangle" style="width:16px;"></i> Pedidos Atrasados</h3><div id="perfAlertasCriticos" style="margin-top:10px;"></div></div>
-                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="wallet" style="color:var(--success);width:16px;"></i> Inadimplência</h3><div id="perfFinRecebimentos" style="margin-top:14px;"></div></div>
-                    <div class="ai-card" style="margin-top:0;padding:22px;"><h3 style="display:flex;align-items:center;gap:8px;font-size:16px;"><i data-lucide="brain" style="width:16px;"></i> Insights da Operação</h3><div id="perfInsights" style="font-size:14px;margin-top:12px;line-height:1.7;"></div></div>
-                </div>
-            </div>
-        </section>
-
-        <section id="pedidos" class="section">
-            <div class="header-flex">
-                <h2><i data-lucide="package" style="color:var(--primary);width:22px;"></i> Central de Pedidos</h2>
-                <button class="btn btn-primary" onclick="abrirFormPedido()"><i data-lucide="plus" style="width:15px;"></i> Novo Pedido</button>
-            </div>
-            <div class="dashboard-grid" style="margin-bottom:18px;">
-                <div class="dashboard-card info"><div class="card-label">Em Produção</div><div class="card-value" id="dashPedAbertos">0</div></div>
-                <div class="dashboard-card expense"><div class="card-label">🔴 Atrasados</div><div class="card-value" id="dashPedAtrasados" style="color:var(--danger);">0</div></div>
-                <div class="dashboard-card warning"><div class="card-label">Ticket Médio da Fila</div><div class="card-value" id="dashPedTicket">R$ 0</div></div>
-            </div>
             
             <!-- NOVO: Métricas por Cliente -->
             <div class="form-card" style="background:var(--card-glass);padding:20px;margin-bottom:20px;">
@@ -525,6 +501,31 @@
                 <div style="margin-top:16px;">
                     <button class="btn btn-small btn-ghost" onclick="mostrarRankingClientes()"><i data-lucide="trophy" style="width:14px;"></i> Ver Ranking de Clientes</button>
                 </div>
+            </div>
+            
+            <div class="perf-grid">
+                <div>
+                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="award" style="color:var(--warning);width:16px;"></i> Top 5 Clientes</h3><div id="perfTopClientes" style="margin-top:14px;"></div></div>
+                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="shopping-bag" style="color:var(--primary);width:16px;"></i> Produtos Mais Vendidos</h3><div id="perfTopProdutos" style="margin-top:14px;"></div></div>
+                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="truck" style="color:var(--info);width:16px;"></i> Divisão Logística</h3><div id="perfLogistica" style="margin-top:14px;"></div></div>
+                </div>
+                <div>
+                    <div class="form-card" style="border:2px solid var(--danger);background:rgba(254,242,242,0.85);"><h3 style="color:var(--danger);display:flex;align-items:center;gap:8px;font-size:15px;"><i data-lucide="alert-triangle" style="width:16px;"></i> Pedidos Atrasados</h3><div id="perfAlertasCriticos" style="margin-top:10px;"></div></div>
+                    <div class="form-card"><h3 style="display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);padding-bottom:14px;font-size:15px;"><i data-lucide="wallet" style="color:var(--success);width:16px;"></i> Inadimplência</h3><div id="perfFinRecebimentos" style="margin-top:14px;"></div></div>
+                    <div class="ai-card" style="margin-top:0;padding:22px;"><h3 style="display:flex;align-items:center;gap:8px;font-size:16px;"><i data-lucide="brain" style="width:16px;"></i> Insights da Operação</h3><div id="perfInsights" style="font-size:14px;margin-top:12px;line-height:1.7;"></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pedidos" class="section">
+            <div class="header-flex">
+                <h2><i data-lucide="package" style="color:var(--primary);width:22px;"></i> Central de Pedidos</h2>
+                <button class="btn btn-primary" onclick="abrirFormPedido()"><i data-lucide="plus" style="width:15px;"></i> Novo Pedido</button>
+            </div>
+            <div class="dashboard-grid" style="margin-bottom:18px;">
+                <div class="dashboard-card info"><div class="card-label">Em Produção</div><div class="card-value" id="dashPedAbertos">0</div></div>
+                <div class="dashboard-card expense"><div class="card-label">🔴 Atrasados</div><div class="card-value" id="dashPedAtrasados" style="color:var(--danger);">0</div></div>
+                <div class="dashboard-card warning"><div class="card-label">Ticket Médio da Fila</div><div class="card-value" id="dashPedTicket">R$ 0</div></div>
             </div>
 
             <div class="form-card" style="background:var(--card-glass);padding:14px;">
@@ -1863,7 +1864,22 @@ window.mostrarRankingClientes = function() {
     });
     html += '</tbody></table></div>';
     
-    confirmar('🏆 Ranking de Clientes', html, 'Fechar', 'btn-primary').then(() => {});
+    // Usar alerta customizado ao invés de confirmar
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-title').textContent = '🏆 Ranking de Clientes';
+    document.getElementById('confirm-msg').innerHTML = html;
+    const ok = document.getElementById('confirm-ok');
+    const ca = document.getElementById('confirm-cancel');
+    ok.textContent = 'Fechar'; 
+    ok.className = 'btn btn-primary';
+    ca.style.display = 'none';
+    overlay.classList.add('show');
+    ok.onclick = () => { 
+        overlay.classList.remove('show'); 
+        ok.onclick = null; 
+        ca.onclick = null;
+        ca.style.display = 'inline-block';
+    };
 };
 
 // ═══════════════════════════════════════════════════
@@ -2265,6 +2281,9 @@ window.renderPerformance=function(){
     if(taxa>20)insight+=`⚠️ <strong>Atrasos:</strong> Taxa de ${taxa}% — reveja prazos prometidos.<br><br>`;
     if(fat>0&&(fat-recebido)>(fat*0.4))insight+=`💰 <strong>Risco de caixa:</strong> Mais de 40% pendente. Solicite pagamento antecipado.<br><br>`;
     document.getElementById('perfInsights').innerHTML=insight||'Operação saudável. Todos os indicadores dentro do esperado.';
+    
+    // Atualizar métricas por cliente na aba Performance
+    calcularMetricasCliente();
 };
 
 // ═══════════════════════════════════════════════════
