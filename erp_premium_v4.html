@@ -1837,37 +1837,106 @@ window.mostrarRankingClientes = function() {
     pedidos.forEach(p => {
         const tel = (p.telefone || '').replace(/\D/g, '') || p.cliente.toLowerCase();
         if (!clientesMap[tel]) {
-            clientesMap[tel] = { nome: p.cliente, telefone: tel, qtdPedidos: 0, totalGasto: 0, ultimoPedido: null };
+            clientesMap[tel] = { nome: p.cliente, telefone: tel, qtdPedidos: 0, totalGasto: 0, ultimoPedido: null, pedidos: [] };
         }
         const valor = parseFloat(p.valorPedido) || parseFloat(p.valor) || 0;
         clientesMap[tel].qtdPedidos++;
         clientesMap[tel].totalGasto += valor;
+        clientesMap[tel].pedidos.push({ data: p.dataPedido, valor: valor });
         if (p.dataPedido && (!clientesMap[tel].ultimoPedido || p.dataPedido > clientesMap[tel].ultimoPedido)) {
             clientesMap[tel].ultimoPedido = p.dataPedido;
         }
     });
     
-    const clientes = Object.values(clientesMap).sort((a, b) => b.totalGasto - a.totalGasto);
-    
-    let html = '<div style="max-height:400px;overflow-y:auto;">';
-    html += '<table style="width:100%;font-size:13px;">';
-    html += '<thead><tr><th style="text-align:left;">#</th><th style="text-align:left;">Cliente</th><th style="text-align:center;">Pedidos</th><th style="text-align:right;">Total Gasto</th><th style="text-align:center;">Último Pedido</th></tr></thead>';
-    html += '<tbody>';
-    clientes.forEach((c, i) => {
-        html += `<tr>
-            <td>${i+1}º</td>
-            <td><strong>${c.nome}</strong></td>
-            <td style="text-align:center;">${c.qtdPedidos}</td>
-            <td style="text-align:right;color:var(--success);font-weight:700;">${fmt(c.totalGasto)}</td>
-            <td style="text-align:center;font-size:12px;">${safeDateBR(c.ultimoPedido)||'-'}</td>
-        </tr>`;
+    // Calcular recorrência para cada cliente
+    const clientes = Object.values(clientesMap).map(c => {
+        let recorrencia = null;
+        if (c.pedidos.length >= 2) {
+            const datas = c.pedidos.map(p => new Date(p.data).getTime()).filter(d => d > 0).sort((a, b) => a - b);
+            let somaIntervalos = 0;
+            let countIntervalos = 0;
+            for (let i = 1; i < datas.length; i++) {
+                const diffDias = (datas[i] - datas[i-1]) / (1000 * 60 * 60 * 24);
+                if (diffDias > 0 && diffDias < 365) {
+                    somaIntervalos += diffDias;
+                    countIntervalos++;
+                }
+            }
+            if (countIntervalos > 0) {
+                recorrencia = Math.round(somaIntervalos / countIntervalos);
+            }
+        }
+        return { ...c, recorrencia };
     });
-    html += '</tbody></table></div>';
+    
+    // Estado atual de ordenação
+    let criterioOrdenacao = 'totalGasto';
+    let ordemAscendente = false;
+    
+    function renderizarTabela() {
+        const clientesOrdenados = [...clientes].sort((a, b) => {
+            let valA, valB;
+            if (criterioOrdenacao === 'totalGasto') {
+                valA = a.totalGasto;
+                valB = b.totalGasto;
+            } else if (criterioOrdenacao === 'qtdPedidos') {
+                valA = a.qtdPedidos;
+                valB = b.qtdPedidos;
+            } else if (criterioOrdenacao === 'recorrencia') {
+                valA = a.recorrencia !== null ? a.recorrencia : Infinity;
+                valB = b.recorrencia !== null ? b.recorrencia : Infinity;
+            } else if (criterioOrdenacao === 'nome') {
+                valA = a.nome.toLowerCase();
+                valB = b.nome.toLowerCase();
+                return ordemAscendente ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            return ordemAscendente ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+        });
+        
+        let html = '<div style="max-height:500px;overflow-y:auto;">';
+        html += '<table style="width:100%;font-size:13px;">';
+        html += '<thead><tr>';
+        html += '<th style="text-align:left;padding:8px;cursor:pointer;" onclick="window.alternarOrdenacao(\'nome\')">Cliente ' + (criterioOrdenacao === 'nome' ? (ordemAscendente ? '▲' : '▼') : '') + '</th>';
+        html += '<th style="text-align:center;padding:8px;cursor:pointer;" onclick="window.alternarOrdenacao(\'qtdPedidos\')">Pedidos ' + (criterioOrdenacao === 'qtdPedidos' ? (ordemAscendente ? '▲' : '▼') : '') + '</th>';
+        html += '<th style="text-align:right;padding:8px;cursor:pointer;" onclick="window.alternarOrdenacao(\'totalGasto\')">Total Gasto ' + (criterioOrdenacao === 'totalGasto' ? (ordemAscendente ? '▲' : '▼') : '') + '</th>';
+        html += '<th style="text-align:center;padding:8px;cursor:pointer;" onclick="window.alternarOrdenacao(\'recorrencia\')">Recorrência ' + (criterioOrdenacao === 'recorrencia' ? (ordemAscendente ? '▲' : '▼') : '') + '</th>';
+        html += '<th style="text-align:center;padding:8px;">Último Pedido</th>';
+        html += '</tr></thead>';
+        html += '<tbody>';
+        clientesOrdenados.forEach((c, i) => {
+            const recorrenciaTexto = c.recorrencia !== null ? `${c.recorrencia} dias` : '-';
+            html += `<tr style="border-bottom:1px solid #f0f0f0;">
+                <td style="padding:10px 8px;"><strong>${c.nome}</strong></td>
+                <td style="text-align:center;padding:10px 8px;">${c.qtdPedidos}</td>
+                <td style="text-align:right;padding:10px 8px;color:var(--success);font-weight:700;">${fmt(c.totalGasto)}</td>
+                <td style="text-align:center;padding:10px 8px;font-size:12px;">${c.recorrencia !== null ? `Compra a cada ${c.recorrencia} dias` : '-'}</td>
+                <td style="text-align:center;padding:10px 8px;font-size:12px;">${safeDateBR(c.ultimoPedido)||'-'}</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div>';
+        html += '<div style="margin-top:16px;font-size:12px;color:var(--text-muted);text-align:center;">Clique nos cabeçalhos para ordenar</div>';
+        
+        document.getElementById('confirm-msg').innerHTML = html;
+    }
+    
+    window.alternarOrdenacao = function(criterio) {
+        if (criterio === criterioOrdenacao) {
+            ordemAscendente = !ordemAscendente;
+        } else {
+            criterioOrdenacao = criterio;
+            ordemAscendente = criterio === 'nome'; // Nomes em ordem ascendente por padrão
+        }
+        renderizarTabela();
+    };
     
     // Usar alerta customizado ao invés de confirmar
     const overlay = document.getElementById('confirm-overlay');
+    const confirmBox = overlay.querySelector('.confirm-box');
+    confirmBox.style.maxWidth = '900px';
+    confirmBox.style.width = '90%';
+    confirmBox.style.padding = '24px';
     document.getElementById('confirm-title').textContent = '🏆 Ranking de Clientes';
-    document.getElementById('confirm-msg').innerHTML = html;
+    renderizarTabela();
     const ok = document.getElementById('confirm-ok');
     const ca = document.getElementById('confirm-cancel');
     ok.textContent = 'Fechar'; 
@@ -1875,10 +1944,14 @@ window.mostrarRankingClientes = function() {
     ca.style.display = 'none';
     overlay.classList.add('show');
     ok.onclick = () => { 
-        overlay.classList.remove('show'); 
+        overlay.classList.remove('show');
+        confirmBox.style.maxWidth = '380px';
+        confirmBox.style.width = '90%';
+        confirmBox.style.padding = '32px';
         ok.onclick = null; 
         ca.onclick = null;
         ca.style.display = 'inline-block';
+        delete window.alternarOrdenacao;
     };
 };
 
